@@ -1,0 +1,726 @@
+<?php
+/**
+ * Plugin Name:       Soda Addons
+ * Plugin URI:        https://github.com/luismallebrera/elementor-menu-v2
+ * Description:       Collection of custom Elementor widgets including menu, galleries, and more
+ * Version:           2.3.0
+ * Requires at least: 5.0
+ * Requires PHP:      7.0
+ * Author:            Soda Studio
+ * Author URI:        https://sodastudio.com
+ * License:           GPL v2 or later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       soda-elementor-addons
+ * Domain Path:       /languages
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Main Soda Elementor Addons Class
+ */
+final class Elementor_Menu_Widget_V2 {
+
+    const VERSION = '2.3.0';
+    const MINIMUM_ELEMENTOR_VERSION = '3.0.0';
+    const MINIMUM_PHP_VERSION = '7.0';
+
+    private static $_instance = null;
+
+    public static function instance() {
+        if (is_null(self::$_instance)) {
+            self::$_instance = new self();
+        }
+        return self::$_instance;
+    }
+
+    public function __construct() {
+        add_action('plugins_loaded', [$this, 'init']);
+    }
+
+    public function init() {
+        // Check if Elementor is installed and activated
+        if (!did_action('elementor/loaded')) {
+            add_action('admin_notices', [$this, 'admin_notice_missing_main_plugin']);
+            return;
+        }
+
+        // Check for required Elementor version
+        if (!version_compare(ELEMENTOR_VERSION, self::MINIMUM_ELEMENTOR_VERSION, '>=')) {
+            add_action('admin_notices', [$this, 'admin_notice_minimum_elementor_version']);
+            return;
+        }
+
+        // Check for required PHP version
+        if (version_compare(PHP_VERSION, self::MINIMUM_PHP_VERSION, '<')) {
+            add_action('admin_notices', [$this, 'admin_notice_minimum_php_version']);
+            return;
+        }
+
+        // Register widget
+        add_action('elementor/widgets/register', [$this, 'register_widgets']);
+
+        // Register custom category
+        add_action('elementor/elements/categories_registered', [$this, 'register_category']);
+
+        // Register widget styles
+        add_action('elementor/frontend/after_enqueue_styles', [$this, 'widget_styles']);
+
+        // Register widget scripts
+        add_action('elementor/frontend/after_register_scripts', [$this, 'widget_scripts']);
+
+        // Load custom icons
+        $this->load_custom_icons();
+
+        // Load parallax background feature
+        $this->load_parallax_background();
+
+        // Load liquid glass module
+        $this->load_liquid_glass();
+
+        $this->register_municipio_shortcodes();
+        add_action('elementor/query/current_municipio', [$this, 'filter_current_municipio_query']);
+    }
+
+    public function load_custom_icons() {
+        require_once(__DIR__ . '/modules/soda-addons-icons/icons-manager.php');
+    }
+
+    public function load_parallax_background() {
+        require_once(__DIR__ . '/modules/parallax-background.php');
+    }
+
+    public function load_liquid_glass() {
+        require_once(__DIR__ . '/modules/liquid-glass/liquid-glass.php');
+        new \Elementor\Soda_Liquid_Glass();
+    }
+
+    public function register_category($elements_manager) {
+        $elements_manager->add_category(
+            'soda-addons',
+            [
+                'title' => __('Soda Addons', 'soda-elementor-addons'),
+                'icon'  => 'fa fa-plug',
+            ]
+        );
+    }
+
+    public function admin_notice_missing_main_plugin() {
+        if (isset($_GET['activate'])) {
+            unset($_GET['activate']);
+        }
+
+        $message = sprintf(
+            esc_html__('"%1$s" requires "%2$s" to be installed and activated.', 'soda-elementor-addons'),
+            '<strong>' . esc_html__('Soda Elementor Addons', 'soda-elementor-addons') . '</strong>',
+            '<strong>' . esc_html__('Elementor', 'soda-elementor-addons') . '</strong>'
+        );
+
+        printf('<div class="notice notice-warning is-dismissible"><p>%1$s</p></div>', $message);
+    }
+
+    public function admin_notice_minimum_elementor_version() {
+        if (isset($_GET['activate'])) {
+            unset($_GET['activate']);
+        }
+
+        $message = sprintf(
+            esc_html__('"%1$s" requires "%2$s" version %3$s or greater.', 'soda-elementor-addons'),
+            '<strong>' . esc_html__('Soda Elementor Addons', 'soda-elementor-addons') . '</strong>',
+            '<strong>' . esc_html__('Elementor', 'soda-elementor-addons') . '</strong>',
+            self::MINIMUM_ELEMENTOR_VERSION
+        );
+
+        printf('<div class="notice notice-warning is-dismissible"><p>%1$s</p></div>', $message);
+    }
+
+    public function admin_notice_minimum_php_version() {
+        if (isset($_GET['activate'])) {
+            unset($_GET['activate']);
+        }
+
+        $message = sprintf(
+            esc_html__('"%1$s" requires "%2$s" version %3$s or greater.', 'soda-elementor-addons'),
+            '<strong>' . esc_html__('Soda Elementor Addons', 'soda-elementor-addons') . '</strong>',
+            '<strong>' . esc_html__('PHP', 'soda-elementor-addons') . '</strong>',
+            self::MINIMUM_PHP_VERSION
+        );
+
+        printf('<div class="notice notice-warning is-dismissible"><p>%1$s</p></div>', $message);
+    }
+
+    public function register_widgets($widgets_manager) {
+        $widgets_dir = __DIR__ . '/widgets/';
+
+        if (!is_dir($widgets_dir)) {
+            return;
+        }
+
+        $widget_files = glob($widgets_dir . '*.php');
+
+        $widget_class_map = [
+            'soda_back_button_widget'            => 'Back_Button_Widget',
+            'soda_arrow_button_widget'            => 'Arrow_Button_Widget',
+            'soda_breadcrumbs_widget'             => 'Breadcrumbs',
+            'soda_cubeportfolio_widget'           => 'CubePortfolio_Widget',
+            'soda_entry_list_widget'              => 'Entry_List_Widget',
+            'soda_fullscreen_toggle_widget'       => 'Fullscreen_Toggle',
+            'soda_horizontal_gallery_widget'      => 'Horizontal_Gallery',
+            'soda_list_widget_widget'             => 'List_Widget',
+            'soda_lottie_widget_widget'           => 'Lottie_Widget',
+            'soda_magazine_grid_widget'           => 'Magazine_Grid',
+            'soda_moving_gallery_widget'          => 'Moving_Gallery',
+            'soda_pinned_gallery_widget'          => 'Pinned_Gallery',
+            'soda_post_navigation_widget'         => 'Post_Navigation',
+            'soda_post_title_widget'              => 'Post_Title_Widget',
+            'soda_reverse_columns_gallery_widget' => 'Reverse_Columns_Gallery_Widget',
+            'soda_button_widget'                  => 'Soda_Button',
+            'soda_table_widget'                   => 'Table_Widget',
+            'soda_taxonomy_list_widget'           => 'Taxonomy_List_Widget',
+            'soda_zoom_gallery_widget'            => 'Zoom_Gallery',
+            'soda_woocommerce_checkout_widget'    => 'WooCommerce_Checkout',
+        ];
+
+        foreach ($widget_files as $widget_file) {
+            $filename = basename($widget_file, '.php');
+
+            require_once $widget_file;
+
+            if ($filename === 'soda_menu_widget_widget') {
+                if (class_exists('Elementor_Menu_Toggle_Widget_V2')) {
+                    $widgets_manager->register(new \Elementor_Menu_Toggle_Widget_V2());
+                }
+
+                continue;
+            }
+
+            $class_base = $widget_class_map[$filename] ?? $filename;
+            $class_name = 'SodaAddons\\Widgets\\' . $class_base;
+
+            if (class_exists($class_name)) {
+                $widgets_manager->register(new $class_name());
+            }
+        }
+    }
+
+    public function widget_styles() {
+        // Menu widget style
+        wp_enqueue_style(
+            'elementor-menu-widget-v2',
+            plugins_url('assets/css/soda_menu_widget_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        // CubePortfolio
+        wp_register_style(
+            'cubeportfolio-css',
+            plugins_url('assets/css/cubeportfolio.min.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'cubeportfolio-filters-toggle-css',
+            plugins_url('assets/css/filters-toggle.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-arrow-button',
+            plugins_url('assets/css/soda_arrow_button_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-reverse-columns-gallery',
+            plugins_url('assets/css/soda_reverse_columns_gallery_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'frontend-widgets',
+            plugins_url('assets/css/frontend-widgets.min.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        // Widget-specific styles
+        wp_register_style(
+            'soda-back-button',
+            plugins_url('assets/css/soda_back_button_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-moving-gallery',
+            plugins_url('assets/css/soda_moving_gallery_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-pinned-gallery',
+            plugins_url('assets/css/soda_pinned_gallery_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-zoom-gallery',
+            plugins_url('assets/css/soda_zoom_gallery_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-horizontal-gallery',
+            plugins_url('assets/css/soda_horizontal_gallery_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-portfolio-grid',
+            plugins_url('assets/css/portfolio-grid.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-magazine-grid',
+            plugins_url('assets/css/soda_magazine_grid_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-breadcrumbs',
+            plugins_url('assets/css/soda_breadcrumbs_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-post-navigation',
+            plugins_url('assets/css/soda_post_navigation_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-image-pan-zoom',
+            plugins_url('assets/css/image-pan-zoom.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        // Liquid Glass
+        wp_register_style(
+            'soda-liquid-glass',
+            plugins_url('assets/css/liquid-glass.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        // Soda Button
+        wp_register_style(
+            'soda-button',
+            plugins_url('assets/css/soda_button_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-list-widget',
+            plugins_url('assets/css/soda_list_widget_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-table',
+            plugins_url('assets/css/soda_table_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'soda-woo-checkout',
+            plugins_url('assets/css/soda_woocommerce_checkout_widget.css', __FILE__),
+            [],
+            self::VERSION
+        );
+    }
+
+    public function widget_scripts() {
+        // Menu widget script
+        wp_register_script(
+            'elementor-menu-widget-v2',
+            plugins_url('assets/js/soda_menu_widget_widget.js', __FILE__),
+            ['jquery'],
+            self::VERSION,
+            true
+        );
+
+        // GSAP and plugins
+        wp_register_script(
+            'soda-gsap',
+            plugins_url('assets/js/gsap.min.js', __FILE__),
+            [],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-scrollTrigger',
+            plugins_url('assets/js/ScrollTrigger.min.js', __FILE__),
+            ['soda-gsap'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-flip',
+            plugins_url('assets/js/Flip.min.js', __FILE__),
+            ['soda-gsap'],
+            self::VERSION,
+            true
+        );
+
+        // Isotope and related
+        wp_register_script(
+            'imagesloaded',
+            plugins_url('assets/js/imagesloaded.pkgd.min.js', __FILE__),
+            ['jquery'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'isotope',
+            plugins_url('assets/js/isotope.pkgd.min.js', __FILE__),
+            ['jquery', 'imagesloaded'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'packery-mode',
+            plugins_url('assets/js/packery-mode.pkgd.min.js', __FILE__),
+            ['isotope'],
+            self::VERSION,
+            true
+        );
+
+        // CubePortfolio
+        wp_register_script(
+            'cubeportfolio-js',
+            plugins_url('assets/js/jquery.cubeportfolio.min.js', __FILE__),
+            ['jquery'],
+            self::VERSION,
+            true
+        );
+
+        // Widget-specific scripts
+        wp_register_script(
+            'soda-back-button',
+            plugins_url('assets/js/soda_back_button_widget.js', __FILE__),
+            [],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-moving-gallery',
+            plugins_url('assets/js/soda_moving_gallery_widget.js', __FILE__),
+            ['jquery', 'soda-gsap'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-pinned-gallery',
+            plugins_url('assets/js/soda_pinned_gallery_widget.js', __FILE__),
+            ['jquery', 'soda-gsap'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-zoom-gallery',
+            plugins_url('assets/js/soda_zoom_gallery_widget.js', __FILE__),
+            ['jquery', 'soda-gsap', 'soda-flip'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-horizontal-gallery',
+            plugins_url('assets/js/soda_horizontal_gallery_widget.js', __FILE__),
+            ['jquery', 'soda-gsap', 'soda-scrollTrigger'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-lottie-widget',
+            plugins_url('assets/js/lottie-player.js', __FILE__),
+            ['jquery'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-image-pan-zoom',
+            plugins_url('assets/js/image-pan-zoom.js', __FILE__),
+            [ 'elementor-frontend' ],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-portfolio-grid',
+            plugins_url('assets/js/portfolio-grid.js', __FILE__),
+            ['jquery', 'isotope'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-magazine-grid',
+            plugins_url('assets/js/soda_magazine_grid_widget.js', __FILE__),
+            ['jquery'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'isotope-grid',
+            plugins_url('assets/js/isotope-grid.js', __FILE__),
+            ['jquery', 'isotope'],
+            self::VERSION,
+            true
+        );
+
+        // Liquid Glass
+        wp_register_script(
+            'soda-liquid-glass',
+            plugins_url('assets/js/liquid-glass.js', __FILE__),
+            ['elementor-frontend'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-fullscreen-toggle',
+            plugins_url('assets/js/soda_fullscreen_toggle_widget.js', __FILE__ ),
+            ['jquery', 'elementor-frontend'],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'soda-woo-checkout',
+            plugins_url('assets/js/soda_woocommerce_checkout_widget.js', __FILE__),
+            ['elementor-frontend'],
+            self::VERSION,
+            true
+        );
+    }
+
+
+    /**
+     * Register shortcodes to expose municipio related data inside popups.
+     */
+    private function register_municipio_shortcodes() {
+        add_shortcode('municipio_title', [$this, 'shortcode_municipio_title']);
+        add_shortcode('municipio_galgdr_name', [$this, 'shortcode_municipio_galgdr_name']);
+        add_shortcode('municipio_provincia_name', [$this, 'shortcode_municipio_provincia_name']);
+    }
+
+
+    /**
+     * Resolve the municipio ID from shortcode attributes, query string, or current post.
+     *
+     * @param array $atts Shortcode attributes.
+     * @return int
+     */
+    private function resolve_municipio_context_id($atts) {
+        if (isset($atts['id'])) {
+            return absint($atts['id']);
+        }
+
+        if (isset($_GET['municipio_id'])) {
+            return absint(wp_unslash($_GET['municipio_id']));
+        }
+
+        $queried = get_queried_object();
+        if ($queried instanceof \WP_Post && $queried->post_type === 'municipio') {
+            return (int) $queried->ID;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Attempt to resolve a taxonomy term name using its ID.
+     *
+     * @param int $term_id Term identifier.
+     * @return string
+     */
+    private function resolve_term_name($term_id) {
+        $term_id = absint($term_id);
+        if (!$term_id) {
+            return '';
+        }
+
+        $taxonomies = get_taxonomies([], 'names');
+        foreach ($taxonomies as $taxonomy) {
+            $term = get_term_by('id', $term_id, $taxonomy);
+            if ($term && ! is_wp_error($term)) {
+                return $term->name;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Shortcode callback that renders the GAL/GDR name linked to a municipio.
+     *
+     * @param array $atts Shortcode attributes.
+     * @return string
+     */
+    public function shortcode_municipio_galgdr_name($atts = []) {
+        $municipio_id = $this->resolve_municipio_context_id($atts);
+        if (!$municipio_id) {
+            return '';
+        }
+
+        $gal_id = get_post_meta($municipio_id, '_municipio_galgdr_asociado', true);
+        if (empty($gal_id)) {
+            return '';
+        }
+
+        $name = '';
+
+        if (is_numeric($gal_id)) {
+            $related_post = get_post((int) $gal_id);
+            if ($related_post instanceof \WP_Post) {
+                $name = $related_post->post_title;
+            }
+            if ($name === '') {
+                $name = $this->resolve_term_name((int) $gal_id);
+            }
+        }
+
+        if ($name === '' && is_string($gal_id)) {
+            $name = $gal_id;
+        }
+
+        if ($name === '') {
+            return '';
+        }
+
+        return sprintf('<span class="municipio-galgdr-name">%s</span>', esc_html($name));
+    }
+
+    /**
+     * Shortcode callback that renders the provincia name linked to a municipio.
+     *
+     * @param array $atts Shortcode attributes.
+     * @return string
+     */
+    public function shortcode_municipio_provincia_name($atts = []) {
+        $municipio_id = $this->resolve_municipio_context_id($atts);
+        if (!$municipio_id) {
+            return '';
+        }
+
+        $province_id = get_post_meta($municipio_id, '_municipio_provincia', true);
+        if (empty($province_id)) {
+            return '';
+        }
+
+        $name = '';
+
+        if (is_numeric($province_id)) {
+            $related_post = get_post((int) $province_id);
+            if ($related_post instanceof \WP_Post) {
+                $name = $related_post->post_title;
+            }
+            if ($name === '') {
+                $name = $this->resolve_term_name((int) $province_id);
+            }
+        }
+
+        if ($name === '' && is_string($province_id)) {
+            $name = $province_id;
+        }
+
+        if ($name === '') {
+            return '';
+        }
+
+        return sprintf('<span class="municipio-provincia-name">%s</span>', esc_html($name));
+    }
+
+    /**
+     * Shortcode callback that renders the municipio title.
+     *
+     * @param array $atts Shortcode attributes.
+     * @return string
+     */
+    public function shortcode_municipio_title($atts = []) {
+        $municipio_id = $this->resolve_municipio_context_id($atts);
+        if (!$municipio_id) {
+            return '';
+        }
+
+        $post = get_post($municipio_id);
+        if (!($post instanceof \WP_Post) || $post->post_type !== 'municipio') {
+            return '';
+        }
+
+        $title = get_the_title($post);
+        if (! $title) {
+            return '';
+        }
+
+        return sprintf('<span class="municipio-title">%s</span>', esc_html($title));
+    }
+
+    /**
+     * Limit Elementor current_municipio queries to the active municipio post.
+     */
+    public function filter_current_municipio_query($query) {
+        if (!($query instanceof \WP_Query)) {
+            return;
+        }
+
+        $current_id = $this->resolve_municipio_context_id([]);
+
+        if (!$current_id && is_singular('municipio')) {
+            $current_id = get_the_ID();
+        }
+
+        if (!$current_id) {
+            return;
+        }
+
+        $query->set('post_type', ['municipio']);
+        $query->set('post__in', [$current_id]);
+        $query->set('posts_per_page', 1);
+        $query->set('orderby', 'post__in');
+        $query->set('ignore_sticky_posts', true);
+    }
+}
+
+Elementor_Menu_Widget_V2::instance();

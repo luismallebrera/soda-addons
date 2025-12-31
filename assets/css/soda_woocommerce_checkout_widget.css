@@ -1,0 +1,340 @@
+.soda-woo-checkout {
+    --soda-woo-checkout-body-bg: #f4f4f4;
+    --soda-woo-checkout-panel-bg: #ffffff;
+    --soda-woo-checkout-summary-bg: #fafafa;
+    --soda-woo-checkout-accent: #5c6ac4;
+    --soda-woo-checkout-border: rgba(18, 24, 40, 0.08);
+    --soda-woo-checkout-muted: #5c5f6a;
+    --soda-woo-checkout-radius: 12px;
+    --soda-woo-checkout-gap: 32px;
+    --soda-woo-checkout-sticky-offset: 32px;
+    background-color: var(--soda-woo-checkout-body-bg);
+    border-radius: var(--soda-woo-checkout-radius);
+    position: relative;
+}
+
+.soda-woo-checkout__progress {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.soda-woo-checkout__progress-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--soda-woo-checkout-muted);
+}
+
+.soda-woo-checkout__progress-step.is-current {
+    color: #101828;
+}
+
+.soda-woo-checkout__progress-step.is-complete {
+    color: #101828;
+}
+
+.soda-woo-checkout__progress-bullet {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--soda-woo-checkout-border);
+    display: inline-block;
+    background-color: transparent;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.soda-woo-checkout__progress-step.is-current .soda-woo-checkout__progress-bullet {
+    border-color: var(--soda-woo-checkout-accent);
+    background-color: var(--soda-woo-checkout-accent);
+}
+
+.soda-woo-checkout__progress-step.is-complete .soda-woo-checkout__progress-bullet {
+    border-color: var(--soda-woo-checkout-accent);
+    background-color: transparent;
+    box-shadow: inset 0 0 0 4px var(--soda-woo-checkout-accent);
+}
+
+.soda-woo-checkout__summary-toggle {
+    display: none;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-radius: var(--soda-woo-checkout-radius);
+    border: 1px solid var(--soda-woo-checkout-border);
+    background-color: var(--soda-woo-checkout-summary-bg);
+    color: #101828;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    margin-bottom: 16px;
+}
+
+.soda-woo-checkout__summary-toggle:focus {
+    outline: none;
+    border-color: var(--soda-woo-checkout-accent);
+    box-shadow: 0 0 0 3px rgba(92, 106, 196, 0.2);
+}
+
+.soda-woo-checkout__summary-toggle-icon {
+    position: relative;
+    width: 18px;
+    height: 18px;
+    color: currentColor;
+    flex: none;
+}
+
+.soda-woo-checkout__summary-toggle-icon::before,
+.soda-woo-checkout__summary-toggle-icon::after {
+    content: '';
+    position: absolute;
+    background-color: currentColor;
+    border-radius: 999px;
+    transition: transform 0.2s ease;
+}
+
+.soda-woo-checkout__summary-toggle-icon::before {
+    width: 18px;
+    height: 2px;
+    top: 8px;
+    left: 0;
+}
+
+.soda-woo-checkout__summary-toggle-icon::after {
+    width: 2px;
+    height: 18px;
+    top: 0;
+    left: 8px;
+}
+
+.soda-woo-checkout.is-summary-open .soda-woo-checkout__summary-toggle-icon::after {
+    transform: scaleY(0);
+}
+
+.soda-woo-checkout.has-summary-toggle .soda-woo-checkout__summary-toggle {
+    display: flex;
+}
+
+.soda-woo-checkout__container form.woocommerce-checkout {
+    display: grid;
+    gap: var(--soda-woo-checkout-gap);
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    align-items: flex-start;
+}
+
+.soda-woo-checkout__container #customer_details,
+.soda-woo-checkout__container #order_review {
+    border-radius: var(--soda-woo-checkout-radius);
+    border: 1px solid var(--soda-woo-checkout-border);
+    padding: 32px;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.04);
+}
+
+.soda-woo-checkout__container #customer_details {
+    background-color: var(--soda-woo-checkout-panel-bg);
+}
+
+.soda-woo-checkout__container #order_review {
+    background-color: var(--soda-woo-checkout-summary-bg);
+}
+
+@media (min-width: 1025px) {
+    .soda-woo-checkout__container #order_review {
+        position: sticky;
+        top: var(--soda-woo-checkout-sticky-offset);
+    }
+}
+
+.soda-woo-checkout__container #order_review_heading {
+    display: none;
+}
+
+.soda-woo-checkout__summary-heading {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #101828;
+}
+
+.soda-woo-checkout__container .woocommerce-form-login-toggle,
+.soda-woo-checkout__container .woocommerce-form-coupon-toggle {
+    margin-bottom: 16px;
+}
+
+.soda-woo-checkout__container .woocommerce-form-login,
+.soda-woo-checkout__container .checkout_coupon {
+    border: 1px solid var(--soda-woo-checkout-border);
+    padding: 24px;
+    border-radius: var(--soda-woo-checkout-radius);
+    background-color: #ffffff;
+}
+
+.soda-woo-checkout__container input.input-text,
+.soda-woo-checkout__container textarea,
+.soda-woo-checkout__container select {
+    border: 1px solid var(--soda-woo-checkout-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    background-color: #ffffff;
+    box-shadow: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.soda-woo-checkout__container input.input-text:focus,
+.soda-woo-checkout__container textarea:focus,
+.soda-woo-checkout__container select:focus {
+    border-color: var(--soda-woo-checkout-accent);
+    box-shadow: 0 0 0 3px rgba(92, 106, 196, 0.18);
+    outline: none;
+}
+
+.soda-woo-checkout__container .form-row {
+    margin-bottom: 18px;
+}
+
+.soda-woo-checkout__container .woocommerce-billing-fields__field-wrapper,
+.soda-woo-checkout__container .woocommerce-shipping-fields__field-wrapper {
+    display: grid;
+    gap: 16px;
+}
+
+.soda-woo-checkout__container .woocommerce-billing-fields__field-wrapper .form-row-wide,
+.soda-woo-checkout__container .woocommerce-shipping-fields__field-wrapper .form-row-wide {
+    grid-column: 1 / -1;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-review-order-table {
+    border: none;
+    margin-bottom: 24px;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-review-order-table thead,
+.soda-woo-checkout__container .woocommerce-checkout-review-order-table tbody,
+.soda-woo-checkout__container .woocommerce-checkout-review-order-table tfoot {
+    border: none;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-review-order-table th,
+.soda-woo-checkout__container .woocommerce-checkout-review-order-table td {
+    border: none;
+    padding: 12px 0;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-review-order-table tbody tr:first-child td {
+    padding-top: 0;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-review-order-table td.product-total {
+    text-align: right;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-review-order-table tfoot th {
+    font-weight: 600;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-review-order-table tfoot td {
+    text-align: right;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-payment {
+    border: none;
+    background-color: transparent;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-payment .wc_payment_methods {
+    border: none;
+    padding: 0;
+    margin-bottom: 24px;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-payment .wc_payment_methods li {
+    border: 1px solid var(--soda-woo-checkout-border);
+    border-radius: var(--soda-woo-checkout-radius);
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    background-color: #ffffff;
+}
+
+.soda-woo-checkout__container .woocommerce-checkout-payment .payment_box {
+    margin-top: 12px;
+    border-radius: 10px;
+    padding: 16px;
+    background-color: var(--soda-woo-checkout-summary-bg);
+}
+
+.soda-woo-checkout__container #place_order {
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 999px;
+    background-color: var(--soda-woo-checkout-accent);
+    border: 1px solid var(--soda-woo-checkout-accent);
+    color: #ffffff;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.soda-woo-checkout__container #place_order:hover {
+    background-color: #4e5bb0;
+    border-color: #4e5bb0;
+    transform: translateY(-1px);
+}
+
+.soda-woo-checkout__container #place_order:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(92, 106, 196, 0.18);
+}
+
+.soda-woo-checkout__assurance {
+    margin-top: 32px;
+    border-radius: var(--soda-woo-checkout-radius);
+    border: 1px solid var(--soda-woo-checkout-border);
+    background-color: #ffffff;
+    padding: 28px 32px;
+}
+
+.soda-woo-checkout__assurance-title {
+    margin-bottom: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #101828;
+}
+
+.soda-woo-checkout__assurance-content {
+    color: var(--soda-woo-checkout-muted);
+}
+
+@media (max-width: 1024px) {
+    .soda-woo-checkout__container form.woocommerce-checkout {
+        grid-template-columns: 1fr;
+    }
+
+    .soda-woo-checkout__container #order_review {
+        position: relative;
+        top: auto;
+    }
+}
+
+@media (max-width: 767px) {
+    .soda-woo-checkout__progress {
+        margin-bottom: 16px;
+    }
+
+    .soda-woo-checkout__container #customer_details,
+    .soda-woo-checkout__container #order_review {
+        padding: 24px;
+    }
+
+    .soda-woo-checkout.has-summary-toggle #order_review {
+        display: none;
+    }
+
+    .soda-woo-checkout.has-summary-toggle.is-summary-open #order_review {
+        display: block;
+    }
+}
